@@ -53,6 +53,9 @@ type Upgrader struct {
 	// guarantee that compression will be supported. Currently only "no context
 	// takeover" modes are supported.
 	EnableCompression bool
+
+	// Check Sec-Websocket-Version header
+	CheckVersion bool
 }
 
 func (u *Upgrader) returnError(w http.ResponseWriter, r *http.Request, status int, reason string) (*Conn, error) {
@@ -121,8 +124,11 @@ func (u *Upgrader) Upgrade(w http.ResponseWriter, r *http.Request, responseHeade
 	}
 
 	if !tokenListContainsValue(r.Header, "Sec-Websocket-Version", "13") {
-		r.Header.Set("Sec-Websocket-Version", "13")
-		// return u.returnError(w, r, http.StatusBadRequest, "websocket: unsupported version: 13 not found in 'Sec-Websocket-Version' header")
+		if u.CheckVersion {
+			return u.returnError(w, r, http.StatusBadRequest, "websocket: unsupported version: 13 not found in 'Sec-Websocket-Version' header")
+		} else {
+			r.Header.Set("Sec-Websocket-Version", "13")
+		}
 	}
 
 	checkOrigin := u.CheckOrigin
